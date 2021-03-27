@@ -1,4 +1,15 @@
-function renderData(data) {
+function getData() {
+
+    var authHeader = {
+        headers: new Headers({
+            "x-api-key": "791d10c8-1f55-4cd5-a103-896e6d02fc51"
+        }),
+    };
+
+    return d3.json('https://api.thecatapi.com/v1/images/search?limit=20', authHeader);
+}
+
+function formatData(data) {
     console.log(data);
 
     var graph = {
@@ -28,6 +39,12 @@ function renderData(data) {
         })
     }
 
+    return graph;
+}
+
+function renderData(data) {
+    console.log(data);
+
     var width = 1000,
         height = 500;
 
@@ -36,14 +53,14 @@ function renderData(data) {
     var svg = d3.select("main .graph").append("svg")
         .attr("viewBox", [-width / 2, -height / 2, width, height])
 
-    var types = Array.from(new Set(graph.links.map(d => d.type)))
+    var types = Array.from(new Set(data.links.map(d => d.type)))
 
     var color = d3.scaleOrdinal(types, d3.schemeCategory10)
 
     var linkArc = d => `M${d.source.x},${d.source.y}A0,0 0 0,1 ${d.target.x},${d.target.y}`
 
-    const simulation = d3.forceSimulation(graph.nodes)
-        .force("link", d3.forceLink(graph.links).id(d => d.id))
+    const simulation = d3.forceSimulation(data.nodes)
+        .force("link", d3.forceLink(data.links).id(d => d.id))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("x", d3.forceX())
         .force("y", d3.forceY())
@@ -97,7 +114,7 @@ function renderData(data) {
         .attr("fill", "none")
         .attr("stroke-width", 1.5)
         .selectAll("path")
-        .data(graph.links)
+        .data(data.links)
         .join("path")
         .attr("stroke", d => color(d.type))
         .attr("marker-end", d => `url(${new URL(`#arrow-${d.type}`, location)})`);
@@ -107,16 +124,16 @@ function renderData(data) {
         .attr("stroke-linecap", "round")
         .attr("stroke-linejoin", "round")
         .selectAll("g")
-        .data(graph.nodes)
+        .data(data.nodes)
         .join("g")
         .call(drag(simulation));
 
-    node.append("clipPath")
+    var clipPaths = node.append("clipPath")
         .attr("id", function (d) { return "clip-circle-" + d.id })
         .append("circle")
         .attr("r", 50);
 
-    node.append("svg:image")
+    var images = node.append("svg:image")
         .attr("xlink:href", function (d) { return d.img; })
         .attr("x", function (d) { return -50; })
         .attr("y", function (d) { return -50; })
@@ -132,16 +149,8 @@ function renderData(data) {
         .attr("fill", "none")
         .attr("stroke", "white")
         .attr("stroke-width", 3);
-
-
 }
 
-var authHeader = {
-    headers: new Headers({
-        "x-api-key": "791d10c8-1f55-4cd5-a103-896e6d02fc51"
-    }),
-};
-
-d3.json('https://api.thecatapi.com/v1/images/search?limit=10', authHeader)
+getData()
+    .then(formatData)
     .then(renderData);
-
